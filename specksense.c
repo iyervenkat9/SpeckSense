@@ -35,8 +35,7 @@ AUTOSTART_PROCESSES(&specksense);
 PROCESS(channel_allocation, "Spectrum monitoring");
 AUTOSTART_PROCESSES(&channel_allocation);
 #else
-#error "Choose a valid process 1. specksense on RADIO_CHANNEL,\
-        2. scanning all channels."
+#error "Choose a valid process 1. specksense on RADIO_CHANNEL, 2. scanning all channels."
 #endif
 
 
