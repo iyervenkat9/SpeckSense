@@ -12,6 +12,8 @@ struct record{
 };
 
 
+
+
 int kmeans(struct record *, int rle_ptr);
 float channel_metric_rssi_threshold(struct record *record, int rle_ptr);
 
@@ -21,5 +23,6 @@ void add_to_tlist(uint16_t ts_diff);
 void update_tlist(uint16_t ts_diff);
 uint16_t abs_diff(uint16_t a, uint16_t b);
 
+enum intf_types {WIFI_BEACON = 0, DATA, BLUETOOTH_SINGLE_SLOT, BLUETOOTH_MULTI_SLOT, UNKNOWN};
 
 
