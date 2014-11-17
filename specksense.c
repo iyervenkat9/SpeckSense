@@ -26,9 +26,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * This file is part of the Contiki operating system.
  *
- * $Id: hello-world.c,v 1.1 2006/10/02 21:46:46 adamdunkels Exp $
+ * $Id: specksense.c, 2014/01/20 Venkatraman Iyer $
  */
 
 /**
@@ -57,21 +56,15 @@
 
 
 /*---------------------------------------------------------------------------*/
-#if PROCESS_ID == 1 
-PROCESS(test_kmeans,"test kmeans");
-AUTOSTART_PROCESSES(&test_kmeans);
-#elif PROCESS_ID == 2
-PROCESS(test_serial,"test serial");
-AUTOSTART_PROCESSES(&test_serial);
-#elif PROCESS_ID == 3
+#if PROCESS_ID == 1
 PROCESS(specksense, "SpeckSense");
 AUTOSTART_PROCESSES(&specksense);
-#elif PROCESS_ID == 4
+#elif PROCESS_ID == 2
 PROCESS(channel_allocation, "Spectrum monitoring");
 AUTOSTART_PROCESSES(&channel_allocation);
 #else
-#error "Choose a valid process 1. test kmeans, 2. test serial, \
-        3. specksense on RADIO_CHANNEL, 3. scanning all channels."
+#error "Choose a valid process 1. specksense on RADIO_CHANNEL, \
+        2. scanning all channels."
 #endif
 
 
@@ -86,15 +79,20 @@ static struct etimer et;
 static uint16_t n_clusters, cidx;
 
 //! Global variables for RSSI scan
-static int rssi_val, rle_ptr = -1, step_count = 1, cond, itr, itr_j, n_samples, max_samples;
+static int  rssi_val, rle_ptr = -1, 
+            step_count = 1, cond, 
+            itr, itr_j, 
+            n_samples, max_samples;
 static unsigned rssi_levels[120];
 
-static rtimer_clock_t sample_st, sample_end, exec_st, exec_end;
+static rtimer_clock_t sample_st, sample_end, 
+                      exec_st, exec_end;
 
 static struct record record;
 
 static float channel_metric[16];
-static int channel_arr[] = {11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26};
+static int channel_arr[] = {11, 12, 13, 14, 15, 16, 17, 18, 
+                            19, 20, 21, 22, 23, 24, 25, 26};
 
  #ifdef WITH_BOOST_CPU
         uint16_t cpu1, cpu2;
@@ -135,30 +133,24 @@ static void rssi_sampler(int time_window_ms){
 	       MY_FASTSPI_GETRSSI(rssi_val);
 	       CC2420_SPI_DISABLE();
 
-	       rssi_val -= 45; // compensation offset
+	       rssi_val -= 45; /* compensation offset */
 	       n_samples = n_samples - 1;
 	       
-// 	       rssi_val = (int) ((signed char) rssi_val);
 	       rssi_val = ((signed char) rssi_val);
-	       // RLE process
-	       cond = 0x01&((record.rssi_rle[rle_ptr][0] != rssi_levels[-rssi_val-1]) | (record.rssi_rle[rle_ptr][1] == 32767));
+	       cond = 0x01 & (( record.rssi_rle[rle_ptr][0] != 
+                            rssi_levels[-rssi_val-1]) | 
+                            (record.rssi_rle[rle_ptr][1] == 32767));
 	       
 	       rle_ptr = rle_ptr + cond;
 	       record.rssi_rle[rle_ptr][0] = rssi_levels[-rssi_val-1];
-	       record.rssi_rle[rle_ptr][1] = (record.rssi_rle[rle_ptr][1])*(1-cond) + 1 ;
+	       record.rssi_rle[rle_ptr][1] = (record.rssi_rle[rle_ptr][1]) * 
+                                         (1-cond) + 1 ;
 #ifdef WITH_BOOST_CPU
 	       /* Restore CPU speed */
 	       DCOCTL = cpu1;
 	       BCSCTL1 = cpu2;
 #endif /* WITH_BOOST_CPU */
-
-	       
-		
 		P2OUT &= ~BV(6);
-#ifdef DEBUG_APP
-		if ((rssi_levels[-rssi_val-1] > 4) || (rssi_levels[-rssi_val-1] < 1))
-		     printf("rssi_val = %d: rssi_level = %d\n",rssi_val,rssi_levels[rssi_val]);
-#endif   
 	  }
 	  watchdog_start();
 #ifdef DEBUG_APP
@@ -172,8 +164,6 @@ static void rssi_sampler(int time_window_ms){
 }
 
 /*---------------------------------------------------------------------------*/
-//! Callback declarations
-
 static rtimer_clock_t rtimer_diff(rtimer_clock_t a, rtimer_clock_t b) {
     if (RTIMER_CLOCK_LT(a,b)){
 	return (0xFFFF - a + b);
@@ -190,7 +180,8 @@ static void print_rssi_rle(){
 }
 
 static void init_power_levels(){
-//! Populate the rssi quantization levels.
+/* Populate the rssi quantization levels.
+ */
 #if POWER_LEVELS == 2
      for (itr = 0; itr < 120; itr++)	  
 	  if (itr < 90)
@@ -198,15 +189,6 @@ static void init_power_levels(){
 	  else
 	    rssi_levels[itr] = 1;
 #elif POWER_LEVELS == 4  
-//      for (itr = 0; i < 120; i++)	  
-// 	  if (i < 54)
-// 	       rssi_levels[i] = 4;
-// 	  else if (i >= 54 && i < 69)
-// 	       rssi_levels[i] = 3;
-// 	  else if (i >= 69 && i < 89)
-// 	       rssi_levels[i] = 2;
-// 	  else
-// 	       rssi_levels[i] = 1;
       for (itr = 0; itr < 120; itr++)	  
 	  if (itr < 30)
 	       rssi_levels[itr] = 4;
@@ -279,80 +261,7 @@ static void init_power_levels(){
 
 
 /*---------------------------------------------------------------------------*/
-#if PROCESS_ID == 1 
-PROCESS_THREAD(test_kmeans, ev, data)
-{ 
-      PROCESS_BEGIN();      
-      etimer_set(&et, 1*CLOCK_SECOND);
-      print_rssi_rle();
-     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-     leds_on(LEDS_RED);
-     etimer_set(&et, 2*CLOCK_SECOND);          
-     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-     printf("kmeans\n");
-     watchdog_stop();
-     exec_st = RTIMER_NOW();
-      n_clusters = kmeans(&record, rle_ptr);
-      interpret_clusters(n_clusters);
-     exec_end = RTIMER_NOW();
-     watchdog_start(); 
-      printf("Time taken (32 Khz ticks):%u:%u:Channel %d\n", 
-      rtimer_diff(sample_end,sample_st), 
-      rtimer_diff(exec_end,exec_st), cc2420_get_channel());      
-
-      PROCESS_END();
-}
-#elif PROCESS_ID == 2
-PROCESS_THREAD(test_serial, ev, data)
-{ 
-      uint8_t *ptr, dlen, i;
-      static uint16_t byte_cnt, itr_cnt;
-      
-      if (data != NULL)
-        ptr = (uint8_t *) data;
-      else
-        ptr = NULL;
-      
-      PROCESS_BEGIN();
-      
-      while(1) {
-        if ( (ptr == NULL) || 
-             ((dlen == 6) && !strncmp((char *) (ptr+3), "CTS", 3))) { 
-            printf("byte_cnt = %d:%d\n", byte_cnt, byte_cnt >> 2);
-            rle_ptr = (byte_cnt >> 2) - 1;
-            print_rssi_rle();
-            
-            if (ptr != NULL) {
-                watchdog_stop();
-                exec_st = RTIMER_NOW();
-                n_clusters = kmeans(&record, rle_ptr);
-                print_interarrival(itr_cnt, n_clusters);
-                
-//                 interpret_clusters(n_clusters);
-                exec_end = RTIMER_NOW();
-                watchdog_start(); 
-                printf("Time taken (32 Khz ticks):%u\n", 
-                        rtimer_diff(exec_end,exec_st));
-                itr_cnt++;
-            }            
-            etimer_set(&et, 5*CLOCK_SECOND);      
-            PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));     
-            byte_cnt = 0;
-            printf("RTS\n");
-        }
-        
-        PROCESS_WAIT_EVENT_UNTIL(ev == serial_line_event_message && data != NULL);       
-        ptr = (uint8_t *) data;
-        dlen = *(ptr+2);
-        if ((dlen != 6) || strncmp((char *) (ptr+3), "CTS", 3)) {
-            memcpy(((uint8_t *) &(record.rssi_rle)) + byte_cnt, (uint8_t *) (ptr+3), dlen-3);
-            byte_cnt = byte_cnt + dlen - 3;
-        }
-               
-      }
-      PROCESS_END();
-}
-#elif PROCESS_ID == 3 
+#if PROCESS_ID == 1
 PROCESS_THREAD(specksense, ev, data)
 {  
   
@@ -377,19 +286,13 @@ PROCESS_THREAD(specksense, ev, data)
      watchdog_start();
 #endif
      
-//      exec_st = RTIMER_NOW();
      n_clusters = kmeans(&record, rle_ptr);
      print_interarrival(RADIO_CHANNEL, n_clusters);
-//      interpret_clusters(n_clusters);
-//      exec_end = RTIMER_NOW();
-//       printf("Time taken (32 Khz ticks):%u:%u:Channel %d\n", 
-//       rtimer_diff(sample_end,sample_st), 
-//       rtimer_diff(exec_end,exec_st), cc2420_get_channel());      
      
   }
   PROCESS_END();
 }
-#elif PROCESS_ID == 4
+#elif PROCESS_ID == 2
 PROCESS_THREAD(channel_allocation, ev, data)
 {
     PROCESS_BEGIN();
@@ -407,12 +310,9 @@ PROCESS_THREAD(channel_allocation, ev, data)
   
 	  record.sequence_num = 0;
 	 
-// 	  etimer_set(&et, 1*CLOCK_SECOND);
-// 	  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 	  leds_on(LEDS_RED);
 	  rssi_sampler(TIME_WINDOW);
 #if DEBUG_RSSI == 1
-//       printf("Channel current %d:", cidx);
 	  print_rssi_rle();
 #endif
 	  watchdog_stop();
@@ -421,24 +321,14 @@ PROCESS_THREAD(channel_allocation, ev, data)
       n_clusters = kmeans(&record, rle_ptr);
       print_interarrival(cc2420_get_channel(), n_clusters);
 #elif CHANNEL_METRIC == 2      
-      channel_metric[cidx-11] = channel_metric[cidx-11] + channel_metric_rssi_threshold(&record, rle_ptr);
-//       printf("Channel %d: Channel metric: %ld.%03u\n",
-//                 cc2420_get_channel(), (long)channel_metric, 
-//                 (unsigned)((channel_metric-floor(channel_metric))*1000));
+      channel_metric[cidx-11] = channel_metric[cidx-11] + 
+                                channel_metric_rssi_threshold(&record, rle_ptr);
 #endif                
-// 	  exec_st = RTIMER_NOW();
-// 	  n_clusters = kmeans(&record, rle_ptr);
-// 	  interpret_clusters(n_clusters);
-// 	  exec_end = RTIMER_NOW();
-// 	  printf("Time taken (32 Khz ticks):%u:%u:Channel %d\n", 
-// 		 rtimer_diff(sample_end,sample_st), 
-// 		 rtimer_diff(exec_end,exec_st), cc2420_get_channel());
-// 	  channel_rate(&record, n_clusters);
+	  channel_rate(&record, n_clusters);
 	  watchdog_start();
 	      
 	  leds_off(LEDS_RED);	
 	  cidx = (cc2420_get_channel() == 26)?11:cc2420_get_channel()+1;
-// 	  printf("Channel next %d\n", cidx);
 	  cc2420_set_channel(cidx);
 	  if (cidx == 11)
 	    itr++;
@@ -448,7 +338,8 @@ PROCESS_THREAD(channel_allocation, ev, data)
       channel_metric[itr] = channel_metric[itr]/3.0;
       printf("Channel %d: Channel metric: %ld.%03u\n",
                 itr+11, (long)channel_metric[itr], 
-                (unsigned)((channel_metric[itr]-floor(channel_metric[itr]))*1000));
+                (unsigned)((channel_metric[itr]-
+                            floor(channel_metric[itr]))*1000));
     }
     
     for (itr = 0; itr < 15; itr++)
@@ -472,8 +363,7 @@ PROCESS_THREAD(channel_allocation, ev, data)
             printf(",");
     }
     
-#endif    
-    
+#endif        
     PROCESS_END();
 }
 #endif
