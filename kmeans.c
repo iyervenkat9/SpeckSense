@@ -339,10 +339,10 @@ int kmeans(struct record *record, int rle_ptr){
         {
             for (i = 0; i < num_clusters_final; i++)
             {
-            prev_num_clusters_final = num_clusters_final;
-            prev_K_final[i][0] = K_final[i][0];
-            prev_K_final[i][1] = K_final[i][1];
-            prev_cost_final = cost_final;
+                prev_num_clusters_final = num_clusters_final;
+                prev_K_final[i][0] = K_final[i][0];
+                prev_K_final[i][1] = K_final[i][1];
+                prev_cost_final = cost_final;
             }
         }
 
